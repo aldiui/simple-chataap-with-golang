@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Chat App</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" />
+    </head>
+    <body>
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-12">
+                    <input type="hidden" id="username-save" />
+                    <h4 class="text-center mb-5">Chat App With Gorila Golang</h4>
+                    <div id="messages" class="card card-body mb-3 rounded-3 shadow border-0 rounded-4 p-5"></div>
+                    <div class="card border-0 shadow rounded-4 p-4">
+                        <div class="card-body">
+                            <div class="form-group" id="username-input">
+                                <input type="text" id="username" name="username" class="form-control" required placeholder="Username" />
+                                <button id="save-username" class="btn btn-primary mt-3">Save</button>
+                            </div>
+                            <form id="message-form" class="d-none">
+                                <div class="form-group">
+                                    <input type="text" id="message" name="message" class="form-control" required placeholder="Message" />
+                                </div>
+                                <button type="submit" class="btn btn-primary">Send</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+        <script>
+            var socket = new WebSocket("ws://localhost:8080/ws");
+
+            $("#save-username").on("click", function () {
+                var username = $("#username").val();
+                $("#username-save").val(username);
+                $("#username-input").hide();
+                $("#message-form").removeClass("d-none");
+            });
+
+            socket.onmessage = function (event) {
+                var msg = JSON.parse(event.data);
+                var username = $("#username-save").val();
+                var formattedMessage = `
+                ${
+                    username == msg.username
+                        ? `
+                    <div class="p-3 text-right">
+                        <span class="bg bg-success text-white px-3 py-2 rounded-pill"><b class="mr-2"> ${msg.username}</b>:  ${msg.message}</span>
+                    </div>`
+                        : `
+                    <div class="p-3 text-left">
+                        <span class="bg bg-primary text-white px-3 py-2 rounded-pill"><b class="mr-2"> ${msg.username}</b>:  ${msg.message}</span>
+                    </div>`
+                }`;
+
+                $("#messages").append(formattedMessage);
+            };
+
+            socket.onclose = function (event) {
+                console.log("WebSocket closed:", event);
+            };
+
+            socket.onerror = function (event) {
+                console.log("WebSocket error:", event);
+            };
+
+            $("#message-form").on("submit", function (event) {
+                event.preventDefault();
+                var username = $("#username").val();
+                var group = "general";
+                var message = $("#message").val();
+
+                var msg = {
+                    username: username,
+                    message: message,
+                    group: group,
+                };
+
+                socket.send(JSON.stringify(msg));
+                $("#message").val("");
+            });
+        </script>
+    </body>
+</html>
